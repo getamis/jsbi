@@ -252,6 +252,10 @@ class JSBI extends Array {
     return remainder.__trim();
   }
 
+  static test(x, y) {
+    return JSBI.add(y, x);
+  }
+
   static add(x, y) {
     const sign = x.sign;
     if (sign === y.sign) {
