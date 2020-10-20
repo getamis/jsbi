@@ -20,8 +20,10 @@ class JSBI extends Array {
     this.sign = sign;
   }
 
-  static BigInt(arg) {
-    if (typeof arg === 'number') {
+  static BigInt(arg, endian) {
+    if (arg instanceof Uint8Array) {
+      return JSBI.__fromBytes(arg, endian || 'be');
+    } else if (typeof arg === 'number') {
       if (arg === 0) return JSBI.__zero();
       if ((arg | 0) === arg) {
         if (arg < 0) {
@@ -72,6 +74,121 @@ class JSBI extends Array {
       return JSBI.__toStringBasePowerOfTwo(this, radix);
     }
     return JSBI.__toStringGeneric(this, radix, false);
+  }
+
+  static __allocate(ArrayType, size) {
+    if (ArrayType.allocUnsafe) {
+      return ArrayType.allocUnsafe(size);
+    }
+    return new ArrayType(size);
+  }
+
+  __bitLength() {
+    const xLength = this.length;
+    if (xLength === 0) return 0;
+    const xMsd = this.__digit(xLength - 1);
+    const msdLeadingZeros = JSBI.__clz32(xMsd);
+    return xLength * 32 - msdLeadingZeros;
+  }
+
+  __byteLength() {
+    return Math.ceil(this.__bitLength() / 8);
+  }
+
+  static __fromBytesLE(data, resultLength) {
+    const res = new JSBI(resultLength, false);
+    res.__initializeDigits();
+    let pos = 0;
+
+    for (let i = 0; i < data.length; pos++) {
+      res[pos] = (data[i++] & 0xff);
+      if (i < data.length) res[pos] |= (data[i++] & 0xff) << 8;
+      if (i < data.length) res[pos] |= (data[i++] & 0xff) << 16;
+      if (i < data.length) res[pos] |= (data[i++] & 0xff) << 24;
+    }
+
+    return res;
+  }
+
+  static __fromBytesBE(data, resultLength) {
+    const res = new JSBI(resultLength, false);
+    res.__initializeDigits();
+
+    let pos = 0
+    for (let i = data.length - 1; i >= 0; pos++) {
+      res[pos] = (data[i--] & 0xff);
+      if (i >= 0) res[pos] |= (data[i--] & 0xff) << 8;
+      if (i >= 0) res[pos] |= (data[i--] & 0xff) << 16;
+      if (i >= 0) res[pos] |= (data[i--] & 0xff) << 24;
+    }
+
+    return res;
+  }
+
+  static __fromBytes(data, endian) {
+    const arraylength = Math.ceil(data.length / 4);
+    if (arraylength <= 0) throw new RangeError('array length <= 0');
+
+    if (endian === 'le') return JSBI.__fromBytesLE(data, arraylength);
+    return JSBI.__fromBytesBE(data, arraylength);
+  }
+
+  __toBytesLE(res) {
+    let position = 0;
+
+    for (let i = 0; i < this.length; i+=1) {
+      const word = this[i];
+
+      if (position >= res.length) return;
+      res[position] = word & 0xff;
+      position += 1;
+
+      if (position >= res.length) return;
+      res[position] = (word >>> 8) & 0xff;
+      position += 1;
+
+      if (position >= res.length) return;
+      res[position] = (word >>> 16) & 0xff;
+      position += 1;
+
+      if (position >= res.length) return;
+      res[position] = (word >>> 24) & 0xff;
+      position += 1;
+    }
+  }
+
+  __toBytesBE(res) {
+    let position = res.length - 1;
+
+    for (let i = 0; i < this.length; i+=1) {
+      const word = this[i];
+
+      if (position < 0) return;
+      res[position] = word & 0xff;
+      position -= 1;
+
+      if (position < 0) return;
+      res[position] = (word >>> 8) & 0xff;
+      position -= 1;
+
+      if (position < 0) return;
+      res[position] = (word >>> 16) & 0xff;
+      position -= 1;
+
+      if (position < 0) return;
+      res[position] = (word >>> 24) & 0xff;
+      position -= 1;
+    }
+  }
+
+  toBytes(endian) {
+    const byteLength = this.__byteLength();
+    if (byteLength <= 0) throw new RangeError('array length <= 0');
+
+    const res = JSBI.__allocate(Uint8Array, byteLength);
+    const postfix = endian === 'le' ? 'LE' : 'BE';
+    this['__toBytes' + postfix](res);
+    return res;
   }
 
   // Equivalent of "Number(my_bigint)" in the native implementation.
