@@ -19,6 +19,8 @@ export default class JSBI {
   static bitLength(x:JSBI): JSBI;
   static modInverse(x: JSBI, m :JSBI): JSBI;
 
+  static powMod2(x: JSBI, y: JSBI, m:JSBI): JSBI;
+
   //
   static exponentiate(x: JSBI, y: JSBI): JSBI;
   static multiply(x: JSBI, y: JSBI): JSBI;
