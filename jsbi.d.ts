@@ -3,9 +3,10 @@ export default class JSBI {
   private length: number;
   private sign: boolean;
 
-  static BigInt(from: number|string|boolean|object): JSBI;
+  static BigInt(from: number|string|boolean|object|Uint8Array): JSBI;
 
   toString(radix?: number): string;
+  toBytes(endian?: 'le' | 'be'): Uint8Array;
   static toNumber(x: JSBI): number;
 
   static unaryMinus(x: JSBI): JSBI;
