@@ -420,9 +420,6 @@ static lehmerGCD(x, y, a, b)  {
   let A = JSBI.BigInt(a);
   let B = JSBI.BigInt(b);
 
-  
-  
-
 	let extended = (x !== null || y !== null);
 
 	if (extended) {
@@ -501,7 +498,7 @@ static lehmerGCD(x, y, a, b)  {
 	if (B.length > 0) {
 		// extended Euclidean algorithm base case if B is a single Word
 		if (A.length > 1) {
-      console.log("ALength:", A.length);
+      //console.log("ALength:", A.length);
 			// A is longer than a single Word, so one update is needed.
      let computingResult = JSBI.euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended);
       A = computingResult.A;
@@ -642,7 +639,7 @@ static lehmerSimulate(A, B)  {
     v0 = v1;
     v1 = v2;
     v2 = temp+q*v2;
-		even = !even
+		even = ~even
 	}
 	return {
     u0: u0,
@@ -682,7 +679,7 @@ static lehmerUpdate(A, B, q, s, t, u0, u1, v0, v1, even) {
   let r = JSBI.BigInt(u1);
   q = JSBI.BigInt(v1);
   r.sign = even;
-  q.sign = !even;
+  q.sign = ~even;
 
   r = JSBI.multiply(r,A);
   q = JSBI.multiply(q,B);
@@ -1900,7 +1897,7 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
   static powMod (x, a, m) {
     if (JSBI.EQ(a, 0)) return JSBI.BigInt(1);
 
-    var windowSize = 8;
+    var windowSize = 6;
     var wnd = new Array(1 << windowSize);
     wnd[0] = JSBI.BigInt(1);
     wnd[1] = JSBI.clone(x);
