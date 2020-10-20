@@ -1779,7 +1779,6 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
     return result;
   } 
 
-
   static powMod (x, a, m) {
     if (JSBI.EQ(a, 0)) return JSBI.BigInt(1);
 
@@ -1829,8 +1828,6 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
     return res;
   };
 
-
-
   static powTwo (num, m) {
     if (JSBI.EQ(num, 0)) return new JSBI.BigInt(0);
     if (JSBI.EQ(num, 1)) return new JSBI.BigInt(2);
@@ -1876,6 +1873,71 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
     res = JSBI.remainder(res, m);
     return res;
   };
+
+  /**
+   * Modular exponentiation b**e mod n. Currently using the right-to-left binary method
+   *
+   * @param {number|bigint} b base
+   * @param {number|bigint} e exponent
+   * @param {number|bigint} n modulo
+   *
+   * @returns {bigint} b**e mod n
+   */
+  static powMod2(b, e, n) {
+    n = JSBI.BigInt(n);
+    if (JSBI.EQ(n, 0)) {
+      throw new RangeError('n must be > 0');
+    } else if (JSBI.EQ(n, 1)) {
+      return JSBI.BigInt(0);
+    }
+
+    b = JSBI.toZn(b, n);
+
+    if (typeof e === 'number') e = JSBI.BigInt(e);
+    if (JSBI.LT(e, 0)) {
+      return JSBI.modInverse(JSBI.powMod2(b, JSBI.abs(e), n), n);
+    }
+
+    const big2 = JSBI.BigInt(2);
+
+    let r = JSBI.BigInt(1);
+    while (JSBI.GT(e, 0)) {
+      if (JSBI.EQ(JSBI.remainder(e, big2), 1)) {
+        r = JSBI.remainder(JSBI.multiply(r, b), n);
+      }
+      e = JSBI.divide(e, big2);
+      b = JSBI.remainder(JSBI.exponentiate(b, big2), n);
+    }
+    return r
+  }
+
+  /**
+   * Finds the smallest positive element that is congruent to a in modulo n
+   * @param {number|bigint} a An integer
+   * @param {number|bigint} n The modulo
+   *
+   * @returns {bigint} The smallest positive representation of a in modulo n
+   */
+  static toZn(a, n) {
+    if (typeof n === 'number') n = JSBI.BigInt(n);
+    if (n <= 0) { return NaN }
+
+    if (typeof a === 'number') a = JSBI.BigInt(a);
+    a = JSBI.remainder(a, n);
+    return (JSBI.LT(a, 0)) ? JSBI.add(a, n) : a;
+  }
+
+  /**
+   * Absolute value. abs(a)==a if a>=0. abs(a)==-a if a<0
+   *
+   * @param {number|bigint} a
+   *
+   * @returns {bigint} the absolute value of a
+   */
+  static abs(a) {
+    if (typeof a === 'number') a = JSBI.BigInt(a);
+    return (JSBI.GT(a, 0)) ? a : JSBI.unaryMinus(a);
+  }
 
   static __multiplyAccumulate(multiplicand, multiplier, accumulator,
       accumulatorIndex) {
