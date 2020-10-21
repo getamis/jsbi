@@ -510,6 +510,7 @@ static lehmerGCD(x, y, a, b)  {
       // A and B are both a single Word.
       let aWord = A[0];
       let bWord = B[0];
+
       if (aWord < 0) {
         aWord += 4294967296;
       }
@@ -526,7 +527,7 @@ static lehmerGCD(x, y, a, b)  {
         let temp;
 				while ( bWord !== 0) {
           let q = (aWord / bWord) | 0;
-          let r = aWord%bWord;
+          let r = aWord % bWord;
           aWord = bWord;
           bWord = r;
           temp = ua;
@@ -536,11 +537,11 @@ static lehmerGCD(x, y, a, b)  {
           va = vb;
           vb = temp+q*vb;
 				
-					even = (~even);
+					even = (!even);
 				}
         t = JSBI.BigInt(ua);
         s = JSBI.BigInt(va);
-        t.sign = ~even;
+        t.sign = !even;
         s.sign = (even);
 
         t = JSBI.multiply(t,Ua);
@@ -638,7 +639,7 @@ static lehmerSimulate(A, B)  {
     v0 = v1;
     v1 = v2;
     v2 = temp+q*v2;
-		even = ~even
+		even = !even
 	}
 	return {
     u0: u0,
@@ -669,7 +670,7 @@ static LeadingZeros(x) {
 static lehmerUpdate(A, B, q, s, t, u0, u1, v0, v1, even) {
   t = JSBI.BigInt(u0);
   s = JSBI.BigInt(v0);
-  t.sign = !even;
+  t.sign = ~even;
   s.sign = even;
 
   t = JSBI.multiply(t,A);
@@ -678,7 +679,7 @@ static lehmerUpdate(A, B, q, s, t, u0, u1, v0, v1, even) {
   let r = JSBI.BigInt(u1);
   q = JSBI.BigInt(v1);
   r.sign = even;
-  q.sign = ~even;
+  q.sign = !even;
 
   r = JSBI.multiply(r,A);
   q = JSBI.multiply(q,B);
@@ -703,8 +704,6 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
   r = JSBI.subtract(A, JSBI.multiply(B,q));
   
   //let result = QuoRem(A, B, r);
-  
-  //console.log("r:",r);
   let temp = A;
   A = B;
   B = r;
@@ -1990,38 +1989,18 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
     return res;
   };
 
-  //+ 4294967296
-  static unsign(x) {
-    if(x < 0) {
-      return x;
-    }
-    return x;
-  }
-
-  static tosign(x) {
-    if(x > 0x7FFFFFFF) {
-      return x;
-    }
-    return x;
-  }
-
-
   static __squareAccumulate(x, out) {
   if (JSBI.EQ(x, 0)) return JSBI.BigInt(0);
   if (JSBI.EQ(x, 1)) return JSBI.BigInt(1);
-  x = JSBI.transferToUint(x);
-  console.log("x:",x);
 
   let carry = 0;
   let n32carry = 0;
   let n48carry = 0;
   let n16carry = 0;
   let n64carry = 0;
-  let n80carry = 0;
-  //let n80carry =0;
+
   for (let i =0; i < out.length; i++) {
     let lowWord = carry;
-    console.log("start:", lowWord);
     let highWord  = n16carry + (lowWord >>>16);
     lowWord &= 0xFFFF;
 
@@ -2034,130 +2013,60 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
 
     for(let j =0; j < ((i+1)>>1); j++) {
       if (j < x.length && i-j < x.length ) {
-        console.log("i:", i);
-        console.log("x[j]:", x[j]);
-        console.log("x[i-j]:", x[i-j]);
-        const unsignxj = JSBI.unsign(x[j]);
-        const unsignxij = JSBI.unsign(x[i-j]);
-        const jlow = unsignxj & 0xFFFF;
-        const jhigh = unsignxj  >>> 16;
-        const ijlow = unsignxij & 0xFFFF;
-        const ijhigh = unsignxij >>> 16;
+        const jlow = x[j] & 0xFFFF;
+        const jhigh = x[j]  >>> 16;
+        const ijlow = x[i-j] & 0xFFFF;
+        const ijhigh = x[i-j] >>> 16;
 
         const low = jlow*ijlow;
         const mid1 = jlow*ijhigh;
         const mid2 = jhigh*ijlow;
         const high = jhigh*ijhigh;
 
-        console.log("low:",low);
-        console.log("mid1:",mid1);
-        console.log("mid2:",mid2);
-        console.log("high:",high);
-
-
-        console.log("low:", low);
-        console.log("lowWord:", lowWord);
-
-
-        n16carry =  (lowWord >>> 16) +(low >>> 16) ;
-        lowWord = (lowWord & 0xFFFF) +(low & 0xFFFF);
-        n16carry +=  lowWord>>> 16;
-        lowWord &=  0xFFFF
-
-        console.log("n16carry:", n16carry);
-        console.log("lowword:", lowWord);
-
-        let tempSum32 = mid1 +mid2;
-        //n32carry += ((highWord + tempSum32 + n16carry) >>>16) | 0;
-        //highWord =  (highWord + tempSum32 + n16carry) & 0xFFFF;
-        n32carry = n32carry + (tempSum32 >>> 16) + (highWord  >>> 16) + (n16carry >>>16);
-        n48carry += n32carry >>> 16; 
-        n32carry &= 0xFFFF;
-        highWord = (highWord & 0xFFFF) + (tempSum32 & 0xFFFF) + (n16carry & 0xFFFF);
-        n32carry +=  highWord >>> 16;
-        highWord &= 0xFFFF;
+        //  2*a_i*a_i-j:
+        for (let k =0; k < 2; k+=1) {
+          n16carry =  (lowWord >>> 16) +(low >>> 16) ;
+          lowWord = (lowWord & 0xFFFF) +(low & 0xFFFF);
+          n16carry +=  lowWord>>> 16;
+          lowWord &=  0xFFFF
+  
+          n32carry = n32carry + (mid1 >>> 16) +  (mid2 >>> 16) + (highWord  >>> 16) + (n16carry >>>16);
+          n48carry += n32carry >>> 16; 
+          n32carry &= 0xFFFF;
+          highWord = (highWord & 0xFFFF) + (mid1 & 0xFFFF) + (mid2 & 0xFFFF) + (n16carry & 0xFFFF);
+          n32carry +=  highWord >>> 16;
+          highWord &= 0xFFFF;
+            
+          n48carry = n48carry+ (n32carry >>> 16)+ (high >>> 16);
+          n32carry = (n32carry & 0xFFFF)+(high & 0xFFFF);
+          n48carry += n32carry >>> 16; 
+          n32carry &=  0xFFFF;
           
-        n48carry = n48carry+ (n32carry >>> 16)+ (high >>> 16);
-        n32carry = (n32carry & 0xFFFF)+(high & 0xFFFF);
-        n48carry += n32carry >>> 16; 
-        n32carry &=  0xFFFF;
-        
-        n64carry += n48carry >>>16;
-        n48carry &= 0xFFFF;
-        n80carry += n64carry >>>16;
-        n64carry &= 0xFFFF;
-
-        // highWord += ((mid1 & 0xFFFF) + (mid2 & 0xFFFF)) + n16carry;
-        // // n16carry = 0;
-        // n48carry += high >>> 16;
-        // n32carry += (highWord >>> 16) + (high & 0xFFFF);
-        // n48carry += (n32carry >>> 16);
-        // n32carry &= 0xFFFF;
-        // n64carry += n48carry >>>16;
-        // n48carry &= 0xFFFF;
-        // n80carry += n64carry >>>16;
-        // n64carry &= 0xFFFF;
-
-        console.log("highword:", highWord);
-        console.log("n32carry:", n32carry);
-        console.log("n48carry:", n48carry);
-        console.log("64carry:", n64carry);
-        console.log("n80carry:", n80carry);
-
-
-        
-        // repeat
-        n16carry =  (lowWord >>> 16) +(low >>> 16) ;
-        lowWord = (lowWord & 0xFFFF) +(low & 0xFFFF);
-        n16carry +=  lowWord>>> 16;
-        lowWord &=  0xFFFF
-        //n32carry += ((highWord + tempSum32 + n16carry) >>>16) | 0;
-        //highWord =  (highWord + tempSum32 + n16carry) & 0xFFFF;
-        n32carry = n32carry + (tempSum32 >>> 16) + (highWord  >>> 16) + (n16carry >>>16);
-        n48carry += n32carry >>> 16; 
-        n32carry &= 0xFFFF;
-        highWord = (highWord & 0xFFFF) + (tempSum32 & 0xFFFF) + (n16carry & 0xFFFF);
-        n32carry +=  highWord >>> 16;
-        highWord &= 0xFFFF;
-          
-        n48carry = n48carry+ (n32carry >>> 16)+ (high >>> 16);
-        n32carry = (n32carry & 0xFFFF)+(high & 0xFFFF);
-        n48carry += n32carry >>> 16; 
-        n32carry &=  0xFFFF;
-        
-        n64carry += n48carry >>>16;
-        n48carry &= 0xFFFF;
-        n80carry += n64carry >>>16;
-        n64carry &= 0xFFFF;
+          n64carry += n48carry >>>16;
+          n48carry &= 0xFFFF;
+        }
       }
     }
     if ((i & 1) !== 1 ) {
       const index = i >> 1;
-      const unsignxj = JSBI.unsign(x[index]);;
-      const jlow = unsignxj & 0xFFFF;
-      const jhigh = unsignxj  >>> 16;;
+      const jlow = x[index] & 0xFFFF;
+      const jhigh = x[index]  >>> 16;;
 
       const low = jlow*jlow;
       const mid = jlow*jhigh;
       const high = jhigh*jhigh;
-
-      console.log("low:",low);
-      console.log("mid:",mid);
-      console.log("high:",high);
 
       n16carry =  (lowWord >>> 16) +(low >>> 16) ;
       lowWord = (lowWord & 0xFFFF) +(low & 0xFFFF);
       n16carry +=  lowWord >>> 16;
       lowWord &=  0xFFFF
 
-      //n32carry += ((highWord + (mid << 1) + n16carry) >>>16) | 0;
-      //highWord =  (highWord + (mid << 1) + n16carry) & 0xFFFF;
-      n32carry = n32carry + (mid >>> 16)+ (mid >>> 16) + (highWord  >>> 16) + (n16carry >>>16);
+      n32carry = n32carry + ((mid >>> 16) <<1 ) + (highWord  >>> 16) + (n16carry >>>16);
       n48carry += n32carry >>> 16; 
       n32carry &= 0xFFFF;
       n64carry += n48carry >>>16;
       n48carry &= 0xFFFF;
-      highWord = (highWord & 0xFFFF)  + (mid & 0xFFFF) + (mid & 0xFFFF) + (n16carry & 0xFFFF);
+      highWord = (highWord & 0xFFFF)  + ((mid & 0xFFFF) << 1) + (n16carry & 0xFFFF);
       n32carry +=  highWord >>> 16;
       highWord &= 0xFFFF;
 
@@ -2166,47 +2075,35 @@ static euclidUpdate(A, B, Ua, Ub, q, r, s, t, extended) {
       n32carry = (n32carry & 0xFFFF) +(high & 0xFFFF);
       n48carry += n32carry >>> 16; 
       n32carry &=  0xFFFF;
-      // n48carry += (n32carry+high) >>> 16;
-      // n32carry = (n32carry + high) & 0xFFFF;
       n64carry += n48carry >>>16;
       n48carry &= 0xFFFF;
-      n80carry += n64carry >>>16;
-      n64carry &= 0xFFFF;
     }
 
-    out[i] = JSBI.tosign( lowWord | (highWord << 16));
-    console.log("outi:", out[i]);
-    console.log("n32carry:", n32carry);
-    console.log("n48carry:", n48carry);
-    console.log("64carry:", n64carry);
-    console.log("n80carry:", n80carry);
-
+    out[i] = lowWord | (highWord << 16);
     carry = n32carry;
     n16carry = n48carry;
     n32carry = n64carry;
-    n48carry = n80carry;
+    n48carry = 0;
     n64carry = 0;
-    n80carry = 0;
   }
 
   if (carry === 0  && n16carry === 0) {
     if (n32carry !== 0) {
       out.push(0);
-      out.push(JSBI.tosign(n32carry));
+      out.push(n32carry);
     }
     return out;
   }
 
   if (carry !== 0  || n16carry !== 0) {
     const temp = carry  | (n16carry << 16);
-    out.push(JSBI.tosign(temp));
+    out.push(temp);
   }
 
   if (n32carry !== 0 || n48carry !== 0) {
     const temp = n32carry   | (n48carry << 16);
-    out.push(JSBI.tosign(temp));
+    out.push(temp);
   }
-  console.log(out);
   return out;
 }
 
